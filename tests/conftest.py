@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,17 +24,8 @@ def ist_ms(year: int, month: int, day: int, hour: int = 0, minute: int = 0, seco
     return int((moment - EPOCH).total_seconds()) * 1000 + millis
 
 
-def utc_ms(year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: int = 0) -> int:
-    moment = datetime(year, month, day, hour, minute, second, tzinfo=timezone.utc)
-    return int((moment - EPOCH).total_seconds()) * 1000
-
-
 def utc_dt(year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: int = 0) -> datetime:
     return datetime(year, month, day, hour, minute, second, tzinfo=timezone.utc)
-
-
-def monday_of(iso_day: str) -> date:
-    return date.fromisoformat(iso_day)
 
 
 UNSET = object()

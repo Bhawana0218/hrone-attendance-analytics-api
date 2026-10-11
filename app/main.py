@@ -48,17 +48,18 @@ MAX_TREND_DAYS = 92
 PRESENCE_STATUSES = ("PRESENT", "WFH", "ON_DUTY")
 NON_PRESENCE_STATUSES = ("ABSENT", "LEAVE")
 
-DERIVED_FIELDS = ("work_hours", "late_minutes", "overtime_minutes", "half_day")
 TRACKED_FIELDS = ("status", "punch_in", "punch_out", "work_hours",
                   "late_minutes", "overtime_minutes", "half_day")
 
 INDEXES = (
     ("employees", [("emp_code", ASCENDING)], {"name": "uniq_emp_code", "unique": True}),
-    ("employees", [("department", ASCENDING), ("joined_on", ASCENDING)], {"name": "dept_joined_on"}),
+    ("employees", [("department", ASCENDING), ("joined_on", ASCENDING)],
+     {"name": "dept_joined_on"}),
     ("employees", [("joined_on", ASCENDING)], {"name": "joined_on"}),
     ("attendance_logs", [("emp_code", ASCENDING), ("date", ASCENDING)],
      {"name": "uniq_emp_code_date", "unique": True}),
-    ("attendance_logs", [("date", DESCENDING), ("emp_code", ASCENDING)], {"name": "date_emp_code"}),
+    ("attendance_logs", [("date", DESCENDING), ("emp_code", ASCENDING)],
+     {"name": "date_emp_code"}),
 )
 
 ATTENDANCE_SORT = [("date", DESCENDING), ("emp_code", ASCENDING)]
@@ -115,7 +116,8 @@ def is_overnight(shift_start: str, shift_end: str) -> bool:
 def attendance_date_of(punch_in: datetime, shift_start: str, shift_end: str) -> date:
     local = punch_in.astimezone(IST)
     day = local.date()
-    if is_overnight(shift_start, shift_end) and minutes_of(local.strftime("%H:%M")) < minutes_of(shift_end):
+    before_shift_end = minutes_of(local.strftime("%H:%M")) < minutes_of(shift_end)
+    if is_overnight(shift_start, shift_end) and before_shift_end:
         day -= timedelta(days=1)
     return day
 
@@ -497,7 +499,8 @@ def round_half_up_expression(expression: Any, places: int) -> dict[str, Any]:
     }
 
 
-def employee_monthly_pipeline(emp_code: str, month_start: str, month_end: str) -> list[dict[str, Any]]:
+def employee_monthly_pipeline(emp_code: str, month_start: str,
+                              month_end: str) -> list[dict[str, Any]]:
     return [
         {"$match": {"emp_code": emp_code, "date": {"$gte": month_start, "$lte": month_end}}},
         {
@@ -641,7 +644,8 @@ def late_leaderboard_pipeline(month_start: str, month_end: str,
     ]
 
 
-def department_trend_pipeline(department: str, date_from: date, date_to: date) -> list[dict[str, Any]]:
+def department_trend_pipeline(department: str, date_from: date,
+                              date_to: date) -> list[dict[str, Any]]:
     bounds = [
         datetime.combine(date_from, clock_time.min, tzinfo=timezone.utc),
         datetime.combine(date_to + timedelta(days=1), clock_time.min, tzinfo=timezone.utc),
@@ -1057,7 +1061,8 @@ def regularize_attendance(
             else before["punch_out"]
         if punch_in_at is None:
             raise bad_request("a presence status requires punch_in")
-        resolved_day = attendance_date_of(punch_in_at, employee["shift_start"], employee["shift_end"])
+        resolved_day = attendance_date_of(
+            punch_in_at, employee["shift_start"], employee["shift_end"])
         if resolved_day != attendance_date:
             raise bad_request("punch_in must stay on the record's attendance date")
         if punch_out_at is not None:
@@ -1188,7 +1193,8 @@ def late_leaderboard(
     emp_codes = None
     if department is not None:
         emp_codes = [row["emp_code"]
-                     for row in db.employees.find({"department": department}, {"_id": 0, "emp_code": 1})]
+                     for row in db.employees.find({"department": department},
+                                                  {"_id": 0, "emp_code": 1})]
     rows = list(
         db.attendance_logs.aggregate(
             late_leaderboard_pipeline(month_start, month_end, emp_codes, limit)
