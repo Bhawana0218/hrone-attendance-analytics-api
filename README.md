@@ -87,7 +87,7 @@ and 503 responses.
 
 ```bash
 pip install -r requirements.txt
-pytest -q                                  # 145 tests
+pytest -q                                  # 147 tests
 pytest -q tests/test_analytics.py          # one area
 ```
 
